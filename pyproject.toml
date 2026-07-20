@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "milldem"
-version = "0.01.000"
-description = "Cross-platform 2D soft-sphere DEM engine for tumbling-mill charge motion and power (no C++/WSL)."
+version = "0.02.000"
+description = "Cross-platform soft-sphere DEM for tumbling-mill charge motion and power (2D charge shape + thin-3D-slab power validated vs Hogg-Fuerstenau; no C++/WSL)."
 readme = "README.md"
 requires-python = ">=3.10"
 license = { text = "MIT" }

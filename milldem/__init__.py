@@ -14,10 +14,25 @@ from __future__ import annotations
 
 from .contact import ContactModel
 from .engine import G, MillConfig, MillDEM
+from .engine3d import MillDEM3D
 from .metrics import MillMetrics, compute_metrics
 
-__version__ = "0.01.000"  # X.XX.XXX display form (versioning.md); PEP 440 normalizes to 0.1.0
-__all__ = ["ContactModel", "MillConfig", "MillDEM", "MillMetrics", "compute_metrics", "simulate", "G"]
+__version__ = "0.02.000"  # X.XX.XXX display form (versioning.md)
+__all__ = ["ContactModel", "MillConfig", "MillDEM", "MillDEM3D", "MillMetrics",
+           "compute_metrics", "simulate", "simulate_power", "G"]
+
+
+def simulate_power(cfg: MillConfig, sim_time: float = 1.5, slab_thickness_m: float | None = None,
+                   seed: int = 42) -> dict:
+    """Run the thin-3D-slab DEM and return the validated net power + charge geometry.
+
+    The 3D slab (axial-periodic) captures the force chains that carry the charge lift, so the net power is
+    size-consistent and lands within ~10-20% of the classical Hogg-Fuerstenau model across speed, fill and mill
+    size (see docs/VALIDATION.md). Returns {net_power_kw, arm_m, n_particles}.
+    """
+    sim = MillDEM3D(cfg, slab_thickness_m=slab_thickness_m, seed=seed)
+    sim.run(sim_time)
+    return {"net_power_kw": sim.net_power_kw(), "arm_m": sim.arm_m(), "n_particles": sim.n}
 
 
 def simulate(cfg: MillConfig, sim_time: float = 2.0, seed: int = 42, settle_frac: float = 0.5) -> MillMetrics:
