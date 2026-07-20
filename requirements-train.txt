@@ -1,0 +1,15 @@
+# CAOS_MillDEM, HEAVY / LOCAL-TRAINING lane (GPU). Torch (CUDA) for the batched-contact GPU path and for
+# training the Graph Network Simulator surrogate on the baked DEM rollout (ChargeCascade beyond-SOTA rung A).
+# NOT installed by default; it is a large CUDA download and only needed on a machine with an NVIDIA GPU.
+#
+# Install (RTX 4070 / CUDA 12.x, verified on this machine, torch 2.13.0+cu126):
+#   pip install -r requirements-jit.txt
+#   pip install torch --index-url https://download.pytorch.org/whl/cu126
+# then this file's extra training deps:
+-r requirements-jit.txt
+# torch is installed via the pytorch cu126 index (see the command above), not from PyPI, so it is listed as a
+# comment here rather than a hard pin to avoid pulling the CPU-only PyPI wheel by accident:
+#   torch>=2.4  (cu126 build)
+torch-geometric>=2.5   ; the GNS message-passing layers (rung A)
+matplotlib>=3.8        ; validation plots (charge-shape snapshots, power-vs-speed curves)
+tqdm>=4.66

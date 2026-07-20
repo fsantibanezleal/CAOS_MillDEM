@@ -1,0 +1,4 @@
+# CAOS_MillDEM, JIT lane (optional speed). numba compiles the DEM hot loop to native code, 10-50x faster
+# than the pure-numpy fallback, still CPU-only and cross-platform. Install: pip install -r requirements-jit.txt
+-r requirements.txt
+numba>=0.61
