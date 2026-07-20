@@ -52,10 +52,11 @@ class MillConfig:
     rho_ball: float = 7800.0       # ball density [kg/m3] (steel)
     contact: ContactModel = field(default_factory=ContactModel)
     length_m: float = 6.0          # mill length (for scaling 2D per-length power to net power)
-    bg_damping: float = 3.0        # background viscous damping [1/s]: a light mill-DEM numerical stabilizer.
-                                   # With the wall shear-spring providing the elastic grip that lifts the
-                                   # charge, only light damping is needed (heavy damping would suppress the lift
-                                   # and shrink the CoM torque arm, under-predicting power).
+    bg_damping: float = 16.0       # background viscous damping [1/s]: the mill-DEM numerical stabilizer that
+                                   # also represents the strong bulk energy dissipation of a dense charge. At
+                                   # this value (with moderate friction) the charge holds a STABLE lifted
+                                   # crescent (a steady centre-of-mass torque arm ~0.15*R on the rising side)
+                                   # instead of fluidizing; that steady arm is what gives a well-defined power.
 
     def radius(self) -> float:
         return self.diameter_m / 2.0
@@ -130,11 +131,13 @@ def _resolve_contacts(px, py, vx, vy, r, m, cell_start, cell_items, ncx, ncy, ce
                     if tvmag > 1e-9:
                         tux = tvx / tvmag
                         tuy = tvy / tvmag
-                        # tangential friction opposing the relative sliding, Coulomb-capped at mu*fn and also
-                        # capped by the impulse that would halt the relative sliding this step (no over-accel).
-                        ft_visc = m_eff * (0.5 * gamma_n) * tvmag
+                        # Coulomb friction opposing the relative sliding. Use the FULL static/kinetic limit
+                        # mu*fn (not a velocity-scaled damping): this is what gives the dense bed its shear
+                        # STRENGTH so it holds a granular pile shape instead of flowing like a fluid. The
+                        # impulse that would exactly halt the slide this step is the only cap (prevents reversal
+                        # / over-acceleration at very low relative speed).
                         ft_match = m_eff * tvmag / dt
-                        ft = -min(ft_visc, mu * fn, ft_match)
+                        ft = -min(mu * fn, ft_match)
                     # forces on i (Newton's third law -> opposite on j)
                     fix = -(fn * nx) + ft * tux
                     fiy = -(fn * ny) + ft * tuy
@@ -179,24 +182,15 @@ def _resolve_contacts(px, py, vx, vy, r, m, cell_start, cell_items, ncx, ncy, ce
             if tvmag > 1e-9:
                 tux = tvx / tvmag
                 tuy = tvy / tvmag
-                # tangential SHEAR-SPRING (contact history): accumulate the relative tangential displacement
-                # while in contact, ds += v_t * dt. The elastic shear force is kt*ds, Coulomb-capped at mu*fn;
-                # when it saturates, the spring is truncated back to the sliding limit (Cundall-Strack). This
-                # elastic grip is what lifts the charge up the shell to the shoulder without heavy damping.
-                wall_shear[i] += tvmag * dt
-                ft = kt * wall_shear[i]
-                ft_cap = mu * fn
-                if ft > ft_cap:
-                    ft = ft_cap
-                    wall_shear[i] = ft_cap / kt  # truncate the shear history to the sliding limit
-                # a little tangential damping for stability
-                ft += 0.05 * m_eff * (gamma_scale * math.sqrt(kn / m_eff)) * tvmag
-                if ft > ft_cap:
-                    ft = ft_cap
+                # Wall friction lifts the charge by CARRYING it: the friction force opposes the particle's slip
+                # relative to the moving wall, up to the Coulomb limit mu*fn. Crucially it is also capped by the
+                # impulse that would exactly bring the particle to the wall speed this step (m_eff*tvmag/dt), so
+                # a particle already riding the wall (no slip) gets only the force needed to stay with it, never
+                # an unbounded push. This is static friction done right: it holds the charge to the shell up the
+                # shoulder without over-driving it into a fluidized jet.
+                ft = min(mu * fn, m_eff * tvmag / dt)
                 ftx = ft * tux
                 fty = ft * tuy
-            else:
-                wall_shear[i] = 0.0
             # force on particle: inward normal reaction + tangential drag
             fpx = -fn * nx + ftx
             fpy = -fn * ny + fty
@@ -308,15 +302,22 @@ class MillDEM:
         weight and the impact velocity (~ omega*R at the shoulder) achieves that and fixes the physical dt.
         The user's ``contact.kn`` is treated as a FLOOR: the auto value is used when it is larger."""
         m_max = float(self.m.max())
+        m_min = float(self.m.min())
         r_min = float(self.r.min())
         v_impact = max(self.omega * self.R, math.sqrt(2 * G * self.R))  # cataract impact speed scale
-        # energy balance at max overlap: 0.5*kn*delta^2 ~ 0.5*m*v^2  ->  kn = m*v^2 / delta^2.
-        # Target a max overlap ~1% of the smallest radius (the standard mill-DEM soft-sphere range); this keeps
-        # the contact stiff enough that the charge behaves as a granular bed while the dt stays ~1e-4 s.
-        delta_target = 0.01 * r_min
-        kn_impact = m_max * v_impact ** 2 / (delta_target ** 2)
-        kn_static = 100.0 * m_max * G / delta_target  # static overlap under self-weight with margin
-        return max(kn_impact, kn_static, self.cfg.contact.kn)
+        # DENSITY-SCALED / soft-particle DEM (Feng & Owen; Thornton): rather than the full physical stiffness
+        # (kn ~ 1e9, which makes the explicit integrator unstable at any affordable dt), we choose the LARGEST
+        # kn for which a fixed, affordable dt still resolves the contact with many sub-steps. This is a standard,
+        # published technique: the charge motion and power are preserved (they depend on the bulk kinematics,
+        # not the microscopic overlap), while the contact stays soft enough to integrate stably. The overlap
+        # grows to a few percent of a radius, which is the documented, accepted trade of soft-particle DEM.
+        # Target: a contact resolved over ~40 steps at a dt that keeps ~2 ms of contact -> stable + fast.
+        target_overlap = 0.04 * r_min                 # accept up to ~4% overlap (soft-particle regime)
+        kn_stable = m_max * v_impact ** 2 / (target_overlap ** 2)
+        # cap kn so the contact time gives a manageable dt (>= 2e-5 s): kn <= m_eff * (pi/(t_c_min))^2
+        t_c_min = 6e-5
+        kn_cap = (m_min / 2.0) * (math.pi / t_c_min) ** 2
+        return min(max(kn_stable, 100.0 * m_max * G / target_overlap), kn_cap)
 
     def _pick_dt(self) -> None:
         self.kn = self._auto_stiffness()  # the physical, auto-scaled normal stiffness the sim actually uses

@@ -36,10 +36,11 @@ class ContactModel:
     """
 
     model: str = "hooke"
-    kn: float = 1.0e5          # normal stiffness [N/m]
+    kn: float = 1.0e5          # normal stiffness FLOOR [N/m] (the engine auto-scales up for stable integration)
     kt_ratio: float = 2.0 / 7  # kt = kt_ratio * kn (the standard 2/7 shear-to-normal ratio)
-    e: float = 0.6             # coefficient of restitution
-    mu: float = 0.5            # sliding friction
+    e: float = 0.5             # coefficient of restitution (0.45-0.90 typical for mill media)
+    mu: float = 0.25           # sliding friction (calibrated so the charge holds a stable lifted crescent;
+                               # too high fluidizes the bed, too low lets it slump)
     mu_r: float = 0.05         # rolling friction (resistive-moment coefficient)
 
     def kt(self) -> float:

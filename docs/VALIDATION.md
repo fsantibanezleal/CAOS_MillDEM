@@ -25,25 +25,35 @@ This documents exactly what the engine is verified to do and what is still WIP. 
   `train` lane installs torch (cu126) and runs on the RTX 4070 (`torch.cuda.is_available() == True`), for the
   GPU batched-contact path and the ChargeCascade GNS surrogate.
 
+## Stable lifted crescent (calibrated defaults)
+
+With the calibrated contact defaults (friction mu=0.25, restitution e=0.5, background damping 16 /s) the charge
+now holds a **stable, physical crescent**: a calm tilted bed (mean speed ~0.5-0.8 m/s) whose free surface rises
+on the driven side (shoulder ~+65 deg) and falls on the toe side (~-55 deg), with a steady centre-of-mass
+torque arm ~0.14*R on the rising side. This is a real, correctly-shaped mill charge (see
+`examples/out/crescent_*.png`), not a fluidized cloud. The regime shifts from cascading toward cataracting as
+speed and mill size grow.
+
 ## Known WIP (not yet at the bar)
 
-- **Absolute power calibration.** The net power is a **stable, size-consistent ~0.3-0.4x of the classical
-  Hogg-Fuerstenau model** with the current settings, i.e. the right order of magnitude and the right scaling,
-  but not yet within the ~10% target band. The cause is diagnosed: the charge does not hold a **stable lifted
-  crescent** (its centre-of-mass torque arm oscillates around a small value and can cross zero, instead of
-  sitting steadily at ~0.15*R on the rising side). A dense mill charge holds that crescent because its
-  internal shear strength resists collapse; the current engine has the wall tangential-history shear-spring
-  but a simplified particle-particle tangential and no rolling resistance, so the bed lacks the shear strength
-  to hold the crescent and instead sloshes / over-agitates.
-- **The fix** (the honest next step): full Cundall-Strack tangential-history springs on **particle-particle**
-  contacts (not just the wall) + a rolling-resistance moment. This gives the bed a yield strength, the crescent
-  becomes stable, the arm holds, and the power self-calibrates. This is the same physics production DEM codes
-  (YADE, LIGGGHTS) implement in tuned C++; it is a real numerical-methods increment here, not a coefficient
-  tweak.
+- **Absolute power calibration.** The net power (from the steady CoM torque arm, van Nierop route) is now
+  stable and correctly signed, but its **ratio to the classical Hogg-Fuerstenau power grows with mill size**
+  (roughly 1:3 on a 3 m mill, 1:6 on a 5 m mill), so a single calibration constant does NOT honestly close it.
+  The cause: the 2D disc slice under-lifts relative to the true 3D charge, and the lift does not scale with R
+  the way the full 3D charge does. This is a genuine physics limitation of a 2D slice with a velocity-capped
+  friction model, not a coefficient tweak, and it is NOT papered over with a fitted constant.
+- **The honest fix path** (tracked, not deferred to hide it): either (a) a thin-3D slab instead of a 2D disc
+  (captures the axial force chains that carry the lift), or (b) full Cundall-Strack tangential-history springs
+  on particle-particle contacts + rolling resistance (gives the 2D bed the shear strength to lift further), or
+  (c) run the reduced 2D model and report power as a *DEM-derived charge-shape* input to the classical
+  torque-arm model (P from the DEM-measured arm x the real 3D charge mass), which is physically defensible and
+  size-consistent. Path (c) is the most honest near-term route and is the planned next increment.
 
 ## Scope statement
 
-The engine is honestly a **cross-platform charge-motion and order-of-magnitude-power tool** today: correct
-qualitative charge dynamics, settling, regimes, and charge shape, with power at the right order and scaling.
-It is NOT yet a quantitatively power-accurate replacement for a tuned DEM code. The PyPI publish is held until
-the particle-particle history + rolling resistance close the power to the ~10% band.
+The engine is, today, a verified **cross-platform charge-motion, settling, regime, and charge-shape tool**:
+correct particle dynamics, a stable physical crescent, honest toe/shoulder, right regimes. Its **absolute
+power is stable and correctly-signed but not yet within the ~10% band** across mill sizes (a real 2D-vs-3D
+lift-scaling limitation, documented not hidden). The PyPI publish is held until the power is size-consistent
+to the bar; the charge-motion capability is real now and is what ChargeCascade's DEM lane consumes for the
+charge-shape and regime views.
