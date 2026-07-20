@@ -3,6 +3,29 @@
 All notable changes to `milldem`. Format: `X.XX.XXX` (display) per CAOS versioning.md. Stay `0.x` while the
 API/contract is unstable. Tag every release `vX.XX.XXX`.
 
+## [0.03.000] - 2026-07-20
+
+Honor the fill: the thin-3D-slab initial placement now packs enough particles for realistic charge fills.
+
+### Fixed
+- **Fill saturation in `MillDEM3D`.** The initial 3D placement laid particles on a loose cubic grid with wall
+  margins in every axis (~3 z-layers), whose capacity saturated below ~0.30 fill: any higher fill collapsed to
+  the same particle count, so a J=0.42 charge was byte-identical to a J=0.35 charge (same N, same power). The z
+  direction is periodic, so it is now tiled by whole layers across the full slab (no wall margins) at the same
+  loose x-y pitch. Particle counts now honor the fill monotonically (J=0.20/0.35/0.42 -> distinct N) up to ~0.4,
+  where the slab reaches its packing and higher nominal fills are shown at that packing.
+- The x-y grid stays loose on purpose: a denser or hexagonal x-y lattice crystallizes the coarse
+  (few-balls-across) charge and kills the natural cascade, breaking the size-consistency of the power. Keeping
+  the validated loose x-y and adding capacity only in the periodic z preserves the dynamics.
+
+### Changed
+- With fills now fully represented, the net power matches Hogg-Fuerstenau at the standard full lift arm
+  (`c_arm = 1.0`) within ~10%, size-consistently (D=3 ratio 1.09, D=5 ratio 1.00, spread 0.08). The previous
+  0.02.000 validation matched a low-arm HF (`c_arm = 0.80`) because the fill was under-represented by the cap.
+- `tests/test_power3d.py`: the HF cross-check now uses `c_arm = 1.0` (the standard arm); the fill test asserts a
+  monotonic rise with fill (the earlier "roll-off at J=0.40" was an artifact of the saturation cap, not physics;
+  the real Hogg-Fuerstenau peak is near J~0.47). All 16 tests pass.
+
 ## [0.02.000] - 2026-07-20
 
 The thin-3D-slab net power: validated against the classical Hogg-Fuerstenau model, size-consistently. This

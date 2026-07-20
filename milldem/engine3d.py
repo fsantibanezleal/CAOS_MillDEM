@@ -149,13 +149,17 @@ class MillDEM3D:
             vol += (4.0 / 3.0) * math.pi * rr ** 3
         radii.sort(reverse=True)
         r = np.array(radii); n = r.shape[0]
-        # place on a 3D grid in the lower drum, no overlaps
+        # place on a 3D grid in the lower drum, no overlaps. The x-y grid stays loose (1.12 spacing): a denser/hex
+        # x-y lattice crystallizes the coarse (few-balls-across) charge and kills the natural cascade, breaking the
+        # size-consistency of the power. The z direction is PERIODIC, so it is tiled by whole layers across the full
+        # slab (no wall margins) at the same loose pitch: this holds the target particle count for realistic fills
+        # (a single margined 3-layer stack saturated below ~0.30 fill, collapsing every higher fill to one charge)
+        # without touching the x-y dynamics that set the lift.
         step = 2.0 * rmax * 1.12
         gx = np.arange(-self.R + rmax + 0.01, self.R - rmax - 0.01, step)
         gy = np.arange(-self.R + rmax + 0.01, self.R - rmax - 0.01, step)
-        gz = np.arange(rmax, self.w - rmax + 1e-9, step)
-        if gz.size == 0:
-            gz = np.array([self.w / 2])
+        nz = max(1, int(round(self.w / step)))
+        gz = (np.arange(nz) + 0.5) * (self.w / nz)   # whole layers tiling the periodic slab, no margins
         pts = [(x, y, z) for z in gz for y in gy for x in gx if x * x + y * y < (self.R - rmax) ** 2]
         pts.sort(key=lambda p: p[1])
         if len(pts) < n:

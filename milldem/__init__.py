@@ -17,7 +17,7 @@ from .engine import G, MillConfig, MillDEM
 from .engine3d import MillDEM3D
 from .metrics import MillMetrics, compute_metrics
 
-__version__ = "0.02.000"  # X.XX.XXX display form (versioning.md)
+__version__ = "0.03.000"  # X.XX.XXX display form (versioning.md)
 __all__ = ["ContactModel", "MillConfig", "MillDEM", "MillDEM3D", "MillMetrics",
            "compute_metrics", "simulate", "simulate_power", "G"]
 

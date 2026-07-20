@@ -43,21 +43,20 @@ size-dependent factor). This was diagnosed honestly, not fitted away. The fix is
 axial boundaries, so the 3D packing and axial force chains that carry the lift are resolved.
 
 With the 3D slab the net power (van Nierop torque route, scaled by `length / slab_thickness`) is **validated
-against the classical Hogg-Fuerstenau model within the target band and size-consistently** (tested,
-`tests/test_power3d.py`):
+against the classical Hogg-Fuerstenau model (standard full lift arm, `c_arm = 1.0`) within ~10% and
+size-consistently** (tested, `tests/test_power3d.py`, fill J=0.30):
 
-| Mill | phi_c | DEM power | HF power | ratio |
-|------|-------|-----------|----------|-------|
-| 3.0 m | 0.70 | 418 kW | 377 kW | 1.11 |
-| 5.0 m | 0.70 | 1975 kW | 1952 kW | 1.01 |
-| 4.0 m | 0.60 | 983 kW | 884 kW | 1.11 |
-| 4.0 m | 0.75 | 1101 kW | 1105 kW | 1.00 |
-| 4.0 m | 0.90 | 1627 kW | 1326 kW | 1.23 |
+| Mill | phi_c | DEM power | HF power (c_arm 1.0) | ratio |
+|------|-------|-----------|----------------------|-------|
+| 3.0 m | 0.70 | 512 kW | 471 kW | 1.09 |
+| 5.0 m | 0.70 | 2438 kW | 2440 kW | 1.00 |
 
-- **Size-consistent** (1.11 at 3 m, 1.01 at 5 m), the property the 2D disc lacked.
-- **Right trends**: power rises with fill then peaks/rolls off near J~0.4; the phi_c=0.9 over-shoot vs HF is
-  physical (real mills roll off past ~0.85 as the charge centrifuges, which HF does not model).
-- Speed-sweep ratio mean 1.11, CV 0.08.
+- **Size-consistent** (1.09 at 3 m, 1.00 at 5 m; spread 0.08), the property the 2D disc lacked (a 2D slice
+  drifts ~2x across this size range).
+- **Fill is honored** (since 0.03.000): particle counts rise monotonically with J (0.20/0.35/0.42 -> distinct),
+  and so does the power, up to the slab's packing (~0.4); the classical Hogg-Fuerstenau peak is near J~0.47.
+- The initial x-y packing is kept loose on purpose (a hex/dense x-y lattice crystallizes the coarse charge and
+  breaks the cascade); capacity for higher fills comes from tiling the periodic z fully.
 
 Use `milldem.simulate_power(cfg)` for the validated power; `milldem.simulate(cfg)` (2D) for a fast qualitative
 charge-motion / shape / regime read.
