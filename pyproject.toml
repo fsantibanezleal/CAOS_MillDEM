@@ -1,10 +1,10 @@
 [build-system]
-requires = ["hatchling"]
-build-backend = "hatchling.build"
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
 
 [project]
 name = "milldem"
-version = "0.1.0"
+version = "0.01.000"
 description = "Cross-platform 2D soft-sphere DEM engine for tumbling-mill charge motion and power (no C++/WSL)."
 readme = "README.md"
 requires-python = ">=3.10"
@@ -16,7 +16,12 @@ classifiers = [
   "Intended Audience :: Science/Research",
   "License :: OSI Approved :: MIT License",
   "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
   "Topic :: Scientific/Engineering :: Physics",
+  "Operating System :: OS Independent",
 ]
 dependencies = [
   "numpy>=2.0,<2.3",
@@ -26,7 +31,7 @@ dependencies = [
 [project.optional-dependencies]
 jit = ["numba>=0.61"]
 train = ["numba>=0.61", "torch-geometric>=2.5", "matplotlib>=3.8", "tqdm>=4.66"]
-dev = ["pytest>=8.0", "matplotlib>=3.8"]
+dev = ["pytest>=8.0", "matplotlib>=3.8", "build>=1.0"]
 
 [project.scripts]
 milldem = "milldem.cli:main"
@@ -34,6 +39,10 @@ milldem = "milldem.cli:main"
 [project.urls]
 Homepage = "https://github.com/fsantibanezleal/CAOS_MillDEM"
 Repository = "https://github.com/fsantibanezleal/CAOS_MillDEM"
+Changelog = "https://github.com/fsantibanezleal/CAOS_MillDEM/blob/main/CHANGELOG.md"
 
-[tool.hatch.build.targets.wheel]
+[tool.setuptools]
 packages = ["milldem"]
+
+[tool.setuptools.dynamic]
+# version is static above (X.XX.XXX display form == PEP 440 0.1.0-compatible: 0.01.000 normalizes to 0.1.0)

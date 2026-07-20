@@ -16,7 +16,7 @@ from .contact import ContactModel
 from .engine import G, MillConfig, MillDEM
 from .metrics import MillMetrics, compute_metrics
 
-__version__ = "0.1.0"
+__version__ = "0.01.000"  # X.XX.XXX display form (versioning.md); PEP 440 normalizes to 0.1.0
 __all__ = ["ContactModel", "MillConfig", "MillDEM", "MillMetrics", "compute_metrics", "simulate", "G"]
 
 

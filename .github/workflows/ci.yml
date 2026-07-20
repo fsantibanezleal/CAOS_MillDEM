@@ -1,0 +1,31 @@
+# CI: lint-free import + the test suite on push/PR (ADR-0032/0065). Cross-platform matrix proves the
+# no-C++/no-WSL claim (the engine runs on Ubuntu, Windows, macOS with the numpy core; numba is optional).
+name: ci
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        python: ["3.11", "3.13"]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Install (core + jit + dev)
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e ".[jit,dev]"
+      - name: Run the test suite
+        run: python -m pytest tests/ -q

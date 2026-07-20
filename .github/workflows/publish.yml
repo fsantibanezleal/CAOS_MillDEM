@@ -1,0 +1,51 @@
+# Publish `milldem` to PyPI on a tagged release, via PyPI Trusted Publishing (OIDC) — NO stored token
+# (ADR-0061). One-time human setup: add a PyPI "pending publisher" for project `milldem`, owner
+# `fsantibanezleal`, repo `CAOS_MillDEM`, workflow `publish.yml`, environment `pypi`. Then a pushed tag
+# `vX.XX.XXX` (or a published GitHub Release) builds + uploads tokenlessly.
+name: publish
+
+on:
+  release:
+    types: [published]
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Build sdist + wheel
+        run: |
+          python -m pip install --upgrade build
+          python -m build
+      - name: Smoke-install the wheel in a clean venv + run the CLI (the package contract)
+        run: |
+          python -m venv /tmp/smoke
+          /tmp/smoke/bin/python -m pip install dist/*.whl
+          /tmp/smoke/bin/milldem --version
+          /tmp/smoke/bin/python -c "from milldem import simulate, MillConfig; m=simulate(MillConfig(diameter_m=3.0, phi_c=0.7, fill=0.25, ball_diameter_m=0.2), sim_time=0.3); print('smoke net_power_kw', round(m.net_power_kw,1), m.regime)"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist/
+
+  publish:
+    needs: build
+    runs-on: ubuntu-latest
+    environment: pypi
+    permissions:
+      id-token: write   # OIDC: mint the short-lived token from PyPI, no secret stored
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
+      - name: Publish to PyPI (Trusted Publishing)
+        uses: pypa/gh-action-pypi-publish@release/v1
