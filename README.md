@@ -16,5 +16,5 @@ print(m.net_power_kw, m.regime, m.toe_deg, m.shoulder_deg)
 
 CLI: `milldem run --D 5 --phi 0.75 --J 0.30 --time 2.0 --json out.json`
 
-See `docs/` for the contact-model equations, the power routes, and the validation against the classical
+See [`docs/VALIDATION.md`](docs/VALIDATION.md) for the honest validated-scope statement, and `docs/` for the contact-model equations, the power routes, and the validation against the classical
 Hogg-Fuerstenau and Morrell power models. MIT licensed.
