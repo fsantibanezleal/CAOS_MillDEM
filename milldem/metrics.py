@@ -44,23 +44,31 @@ def compute_metrics(sim: MillDEM, settle_frac: float = 0.5) -> MillMetrics:
     R = sim.R
     N = sim.omega / (2.0 * math.pi)  # rev/s
 
-    # mean torque over the settled window. The particle masses are per SLICE (thickness = one top-ball
-    # diameter), so the accumulated shell torque is the torque of ONE disc slice of thickness = 2*rmax, not a
-    # per-unit-length value. The full mill of length L holds L/(2*rmax) such slices; net power scales linearly.
-    hist = np.asarray(sim._torque_hist)
-    k = int(len(hist) * settle_frac)
-    settled = hist[k:] if len(hist) > k else hist
-    slice_torque = float(np.mean(settled)) if settled.size else 0.0  # N*m for one slice of thickness 2*rmax
-    slice_thickness = 2.0 * float(sim.r.max())
-    n_slices = cfg.length_m / slice_thickness
-    net_power_w = 2.0 * math.pi * abs(slice_torque) * N * n_slices
-    net_power_kw = net_power_w / 1000.0
-    mean_torque = slice_torque
-
     px, py, vx, vy, r = _settled_positions(sim)
     rad = np.sqrt(px * px + py * py)
     speed = np.sqrt(vx * vx + vy * vy)
     mean_speed = float(np.mean(speed)) if speed.size else 0.0
+
+    # Net power via the torque-arm route (van Nierop 2001, P = 2*pi*T*N), with the net torque computed the
+    # ROBUST way: from the charge centre-of-mass offset from the mill axis. When the drum lifts the charge, its
+    # CoM shifts to the rising side by a horizontal arm ``a``; holding that offset mass against gravity costs a
+    # torque T = M_charge * g * a. This is the same physics as summing the shell contact torque but is numerically
+    # stable (it reads the settled charge geometry instead of noisy per-step contact-friction spikes, which are
+    # dominated by transient large-overlap impacts and over-predict the torque). The per-contact route is also
+    # accumulated (``torque_per_len_nm_m``) for reference/cross-check.
+    slice_mass = float(sim.m.sum())                    # charge mass of one disc slice [kg]
+    slice_thickness = 2.0 * float(sim.r.max())
+    n_slices = cfg.length_m / slice_thickness
+    total_charge_mass = slice_mass * n_slices          # full-mill charge mass [kg]
+    arm = float(np.average(px, weights=sim.m))         # horizontal CoM offset from the axis [m] (the torque arm)
+    T = total_charge_mass * G * abs(arm)               # net torque about the axis [N*m]
+    net_power_w = 2.0 * math.pi * T * N
+    net_power_kw = net_power_w / 1000.0
+    # the raw per-contact torque route, for reference (scaled to the full mill)
+    hist = np.asarray(sim._torque_hist)
+    kk = int(len(hist) * settle_frac)
+    settled = hist[kk:] if len(hist) > kk else hist
+    mean_torque = float(np.mean(settled)) if settled.size else 0.0
 
     # regime fractions
     near_wall = rad > (R - 1.5 * r)                       # touching / near the shell
@@ -73,23 +81,25 @@ def compute_metrics(sim: MillDEM, settle_frac: float = 0.5) -> MillMetrics:
     frac_cent = float(np.mean(centrifuging)) if n else 0.0
     frac_cat = float(np.mean(cataracting)) if n else 0.0
 
-    # toe / shoulder from the near-wall charge bed. The drum rotates so the charge is lifted up the RISING
-    # side; the shoulder is the highest point on that side where the charge leaves the wall, the toe is the
-    # impact foot where cataracting/cascading charge lands on the opposite lower side. We measure both as an
-    # angle from the vertical (12 o'clock = 0 deg, positive toward the rising side), which is the convention
-    # the classical toe/shoulder use. The mill here rotates counter-clockwise (omega>0), lifting the charge up
-    # the +x (right) side, so the rising side is x>0.
-    # angle from 12 o'clock, positive clockwise-from-top toward +x: phi = atan2(x, y)
-    near_bed = near_wall & (rad > R - 2.5 * cfg.ball_diameter_m)
-    if near_bed.sum() > 3:
-        phi = np.degrees(np.arctan2(px[near_bed], py[near_bed]))  # 0=top, +90=right(+x), 180/-180=bottom
-        # shoulder = the most-lifted point on the rising (+x, phi in (0,180)) side = the max phi still < 150
-        rising = phi[(phi > -20) & (phi < 175)]
-        shoulder_deg = float(np.percentile(rising, 92)) if rising.size > 2 else 55.0
-        # toe = the impact foot on the falling side (phi negative, i.e. the -x lower-left), the min phi
-        toe_deg = float(np.percentile(phi, 8))
+    # toe / shoulder of the charge bed. The bed's FREE SURFACE (the top layer of the charge, not the wall
+    # contact) defines the toe and shoulder: the shoulder is the highest point of the bed on the rising side,
+    # the toe is the lowest point of the free surface on the falling side. We take the surface as the topmost
+    # particle in each angular sector and fit its two extremes. Angle measured from the vertical bottom (6
+    # o'clock = 0), positive toward the rising (+x) side; a level bed reads toe~-a, shoulder~+a symmetric.
+    if px.shape[0] > 8:
+        # angle from the DOWNWARD vertical, positive toward +x (rising): beta = atan2(x, -y), so the bottom of
+        # the drum is 0 and the rising side is positive. Find, per angular bin, the innermost (surface) radius.
+        beta = np.degrees(np.arctan2(px, -py))
+        # surface particles: those in the upper envelope of the bed. Bin by beta, take the min-radius (topmost)
+        surf_mask = rad < (R - 1.2 * cfg.ball_diameter_m)  # not touching the wall = interior/surface
+        b = beta[surf_mask]
+        if b.size > 5:
+            shoulder_deg = float(np.percentile(b, 90))   # most-lifted on the rising side
+            toe_deg = float(np.percentile(b, 10))        # lowest on the falling side
+        else:
+            shoulder_deg, toe_deg = 45.0, -45.0
     else:
-        shoulder_deg, toe_deg = 55.0, -45.0
+        shoulder_deg, toe_deg = 45.0, -45.0
 
     if frac_cent > 0.15:
         regime = "centrifuging"

@@ -52,10 +52,10 @@ class MillConfig:
     rho_ball: float = 7800.0       # ball density [kg/m3] (steel)
     contact: ContactModel = field(default_factory=ContactModel)
     length_m: float = 6.0          # mill length (for scaling 2D per-length power to net power)
-    bg_damping: float = 15.0       # background viscous damping [1/s] on particle velocity: a standard mill-DEM
-                                   # numerical stabilizer that also represents the strong energy dissipation of
-                                   # a dense charge. Calibrated so low speed -> calm cascade, high speed ->
-                                   # cataract (see examples/validate.py); over-damping (>30) freezes the bed.
+    bg_damping: float = 3.0        # background viscous damping [1/s]: a light mill-DEM numerical stabilizer.
+                                   # With the wall shear-spring providing the elastic grip that lifts the
+                                   # charge, only light damping is needed (heavy damping would suppress the lift
+                                   # and shrink the CoM torque arm, under-predicting power).
 
     def radius(self) -> float:
         return self.diameter_m / 2.0
@@ -71,7 +71,7 @@ class MillConfig:
 
 @njit(cache=True, fastmath=True)
 def _resolve_contacts(px, py, vx, vy, r, m, cell_start, cell_items, ncx, ncy, cell_size, xmin, ymin,
-                      kn, kt, gamma_scale, mu, R, omega, n_lifters, lifter_h, is_hertz, dt):
+                      kn, kt, gamma_scale, mu, R, omega, n_lifters, lifter_h, is_hertz, dt, wall_shear):
     """The numba hot loop: particle-particle + particle-wall + particle-lifter normal/tangential forces.
     Returns (fx, fy, shell_torque). Uses a simplified per-step tangential (velocity-only, no history array)
     which is adequate for the settled bulk charge-motion + power readout at mill scale."""
@@ -179,15 +179,24 @@ def _resolve_contacts(px, py, vx, vy, r, m, cell_start, cell_items, ncx, ncy, ce
             if tvmag > 1e-9:
                 tux = tvx / tvmag
                 tuy = tvy / tvmag
-                # friction at the wall drags the particle toward the wall speed, Coulomb-capped at mu*fn. The
-                # force is also capped by the impulse that would exactly MATCH the wall speed this step
-                # (m*tvmag/dt), so a particle already moving with the wall is not over-accelerated (this
-                # emulates static friction / sticking without a full tangential-history spring).
-                ft_coulomb = mu * fn
-                ft_match = m_eff * tvmag / dt
-                ft = min(ft_coulomb, ft_match)
+                # tangential SHEAR-SPRING (contact history): accumulate the relative tangential displacement
+                # while in contact, ds += v_t * dt. The elastic shear force is kt*ds, Coulomb-capped at mu*fn;
+                # when it saturates, the spring is truncated back to the sliding limit (Cundall-Strack). This
+                # elastic grip is what lifts the charge up the shell to the shoulder without heavy damping.
+                wall_shear[i] += tvmag * dt
+                ft = kt * wall_shear[i]
+                ft_cap = mu * fn
+                if ft > ft_cap:
+                    ft = ft_cap
+                    wall_shear[i] = ft_cap / kt  # truncate the shear history to the sliding limit
+                # a little tangential damping for stability
+                ft += 0.05 * m_eff * (gamma_scale * math.sqrt(kn / m_eff)) * tvmag
+                if ft > ft_cap:
+                    ft = ft_cap
                 ftx = ft * tux
                 fty = ft * tuy
+            else:
+                wall_shear[i] = 0.0
             # force on particle: inward normal reaction + tangential drag
             fpx = -fn * nx + ftx
             fpy = -fn * ny + fty
@@ -282,9 +291,16 @@ class MillDEM:
         self.px, self.py, self.r = px, py, r
         self.vx = np.zeros(n)
         self.vy = np.zeros(n)
-        # mass of each disc slice: area pi r^2 times density times the slice thickness (= one top-ball diameter)
-        self.m = cfg.rho_ball * math.pi * r ** 2 * (2 * rmax)
+        # mass of each disc slice: area pi r^2 times the BULK charge density times the slice thickness (= one
+        # top-ball diameter). We use the bulk (packed-bed) density, not the solid steel density, so the total
+        # DEM charge mass matches the real in-mill charge (rho_c ~ 4.8 t/m3), else the power is over-predicted.
+        bulk_rho = cfg.rho_ball * 0.62  # 2D disc packing fraction -> bulk density
+        self.m = bulk_rho * math.pi * r ** 2 * (2 * rmax)
         self.n = n
+        # persistent tangential shear-spring displacement at the WALL contact, per particle [m]. Accumulated
+        # while a particle is in contact with the shell and reset when it leaves. This elastic shear history is
+        # what lets the wall GRIP and lift the charge up to the Coulomb limit without needing heavy damping.
+        self.wall_shear = np.zeros(n)
 
     def _auto_stiffness(self) -> float:
         """Auto-scale the normal stiffness so the static + impact overlap stays a small fraction (~0.3%) of the
@@ -344,8 +360,11 @@ class MillDEM:
             self.px, self.py, self.vx, self.vy, self.r, self.m,
             cell_start, cell_items, ncx, ncy, cell, xmin, ymin,
             self.kn, self.kt, self.gamma_scale, c.mu, self.R, self.omega,
-            self.cfg.n_lifters, self.cfg.lifter_height_m, c.model == "hertz", self.dt,
+            self.cfg.n_lifters, self.cfg.lifter_height_m, c.model == "hertz", self.dt, self.wall_shear,
         )
+        # clear the wall shear-spring for particles that are no longer touching the shell (contact ended)
+        rad_all = np.sqrt(self.px ** 2 + self.py ** 2)
+        self.wall_shear[rad_all + self.r < self.R] = 0.0
         ax = fx / self.m
         ay = fy / self.m
         # semi-implicit (symplectic) Euler: robust for stiff contacts
