@@ -44,14 +44,18 @@ def compute_metrics(sim: MillDEM, settle_frac: float = 0.5) -> MillMetrics:
     R = sim.R
     N = sim.omega / (2.0 * math.pi)  # rev/s
 
-    # mean torque over the settled window
+    # mean torque over the settled window. The particle masses are per SLICE (thickness = one top-ball
+    # diameter), so the accumulated shell torque is the torque of ONE disc slice of thickness = 2*rmax, not a
+    # per-unit-length value. The full mill of length L holds L/(2*rmax) such slices; net power scales linearly.
     hist = np.asarray(sim._torque_hist)
     k = int(len(hist) * settle_frac)
     settled = hist[k:] if len(hist) > k else hist
-    mean_torque = float(np.mean(settled)) if settled.size else 0.0  # N*m per unit length (2D)
-    # net power = 2*pi*T*N, scaled by the mill length; T here is per-unit-length so multiply by L
-    net_power_w = 2.0 * math.pi * abs(mean_torque) * cfg.length_m * N
+    slice_torque = float(np.mean(settled)) if settled.size else 0.0  # N*m for one slice of thickness 2*rmax
+    slice_thickness = 2.0 * float(sim.r.max())
+    n_slices = cfg.length_m / slice_thickness
+    net_power_w = 2.0 * math.pi * abs(slice_torque) * N * n_slices
     net_power_kw = net_power_w / 1000.0
+    mean_torque = slice_torque
 
     px, py, vx, vy, r = _settled_positions(sim)
     rad = np.sqrt(px * px + py * py)

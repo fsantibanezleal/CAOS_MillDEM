@@ -52,8 +52,10 @@ class MillConfig:
     rho_ball: float = 7800.0       # ball density [kg/m3] (steel)
     contact: ContactModel = field(default_factory=ContactModel)
     length_m: float = 6.0          # mill length (for scaling 2D per-length power to net power)
-    bg_damping: float = 2.0        # background viscous damping [1/s] on particle velocity (numerical
-                                   # stabilizer, standard in mill-DEM; small vs the physical timescales)
+    bg_damping: float = 15.0       # background viscous damping [1/s] on particle velocity: a standard mill-DEM
+                                   # numerical stabilizer that also represents the strong energy dissipation of
+                                   # a dense charge. Calibrated so low speed -> calm cascade, high speed ->
+                                   # cataract (see examples/validate.py); over-damping (>30) freezes the bed.
 
     def radius(self) -> float:
         return self.diameter_m / 2.0
