@@ -3,6 +3,18 @@
 All notable changes to `milldem`. Format: `X.XX.XXX` (display) per CAOS versioning.md. Stay `0.x` while the
 API/contract is unstable. Tag every release `vX.XX.XXX`.
 
+## [0.03.001] - 2026-07-20
+
+Repo hygiene + complete the published package (no code change).
+
+### Added
+- **`LICENSE`** (MIT), previously declared in `pyproject.toml` but missing as a file, so the 0.3.0 wheel did not
+  bundle it. `[tool.setuptools] license-files` now bundles it explicitly.
+- Standard base files per the CAOS product archetype: `CODE_OF_CONDUCT.md` (Contributor Covenant),
+  `CONTRIBUTING.md` (branch flow + the validation burden physics changes carry), `SECURITY.md`, `STRUCTURE.md`.
+- README rewritten as a proper library README (PyPI/license badges, install lanes, both routes, the CLI, the
+  validation summary, and links to the base files).
+
 ## [0.03.000] - 2026-07-20
 
 Honor the fill: the thin-3D-slab initial placement now packs enough particles for realistic charge fills.

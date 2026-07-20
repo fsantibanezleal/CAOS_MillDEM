@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "milldem"
-version = "0.03.000"
+version = "0.03.001"
 description = "Cross-platform soft-sphere DEM for tumbling-mill charge motion and power (2D charge shape + thin-3D-slab power validated vs Hogg-Fuerstenau; no C++/WSL)."
 readme = "README.md"
 requires-python = ">=3.10"
@@ -43,6 +43,7 @@ Changelog = "https://github.com/fsantibanezleal/CAOS_MillDEM/blob/main/CHANGELOG
 
 [tool.setuptools]
 packages = ["milldem"]
+license-files = ["LICENSE"]
 
 [tool.setuptools.dynamic]
 # version is static above (X.XX.XXX display form == PEP 440 0.1.0-compatible: 0.01.000 normalizes to 0.1.0)
