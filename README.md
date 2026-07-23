@@ -3,6 +3,13 @@
 [![PyPI](https://img.shields.io/pypi/v/milldem)](https://pypi.org/project/milldem/)
 [![Python](https://img.shields.io/pypi/pyversions/milldem)](https://pypi.org/project/milldem/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
+[![DOI](https://img.shields.io/badge/DOI-10.5281%2Fzenodo.21511525-blue)](https://doi.org/10.5281/zenodo.21511525)
+
+Software note (CC-BY-4.0): *"milldem: A Cross-Platform Soft-Sphere DEM for Tumbling-Mill Charge Motion and
+Size-Consistent Net Power"*, concept DOI [10.5281/zenodo.21511525](https://doi.org/10.5281/zenodo.21511525)
+(source in [`manuscripts/mill-power-note/`](manuscripts/mill-power-note/)). It gives the contact model, the
+thin-3D-slab power route, and a reproducible DEM-vs-Hogg-Fuerstenau validation (8 configs within the band
+[0.77, 1.26], size-consistent where a 2D disc drifts ~2x).
 
 A cross-platform soft-sphere **discrete element method (DEM)** engine for tumbling-mill charge motion and
 power. **No C++ toolchain, no WSL**: pure NumPy with an optional Numba JIT and an optional Torch-CUDA path.

@@ -1,0 +1,65 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="720" height="340" viewBox="0 0 720 340" font-family="Georgia, 'Times New Roman', serif">
+  <defs>
+    <marker id="cah" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L7,3 L0,6 Z" fill="#1a1a2e"/>
+    </marker>
+    <marker id="caf" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L8,3 L0,6 Z" fill="#c15a22"/>
+    </marker>
+  </defs>
+
+  <text x="360" y="26" text-anchor="middle" font-size="14" font-weight="bold" fill="#1a1a2e">Soft-sphere contact: two overlapping particles</text>
+
+  <!-- two overlapping spheres -->
+  <circle cx="250" cy="165" r="92" fill="#eaf2f8" stroke="#1b6ca8" stroke-width="2"/>
+  <circle cx="430" cy="165" r="78" fill="#fdf1e8" stroke="#c15a22" stroke-width="2"/>
+  <text x="250" y="170" text-anchor="middle" font-size="13" fill="#1b6ca8">i</text>
+  <text x="430" y="170" text-anchor="middle" font-size="13" fill="#c15a22">j</text>
+
+  <!-- centres and radii -->
+  <circle cx="250" cy="165" r="2.5" fill="#1a1a2e"/>
+  <circle cx="430" cy="165" r="2.5" fill="#1a1a2e"/>
+  <line x1="250" y1="165" x2="342" y2="165" stroke="#1b6ca8" stroke-width="1" stroke-dasharray="4 3"/>
+  <text x="300" y="158" text-anchor="middle" font-size="10.5" fill="#1b6ca8">R_i</text>
+  <line x1="430" y1="165" x2="352" y2="165" stroke="#c15a22" stroke-width="1" stroke-dasharray="4 3"/>
+  <text x="392" y="158" text-anchor="middle" font-size="10.5" fill="#c15a22">R_j</text>
+
+  <!-- overlap delta -->
+  <line x1="352" y1="210" x2="342" y2="210" stroke="#1a1a2e" stroke-width="1"/>
+  <line x1="342" y1="205" x2="342" y2="235" stroke="#1a1a2e" stroke-width="1"/>
+  <line x1="352" y1="205" x2="352" y2="235" stroke="#1a1a2e" stroke-width="1"/>
+  <text x="347" y="252" text-anchor="middle" font-size="11" fill="#1a1a2e">&#948; (overlap)</text>
+
+  <!-- normal spring+dashpot along the line of centres, drawn above -->
+  <text x="347" y="78" text-anchor="middle" font-size="11.5" font-weight="bold" fill="#1a1a2e">normal</text>
+  <path d="M250,100 h28 l6,-8 l10,16 l10,-16 l10,16 l6,-8 h20" fill="none" stroke="#1b6ca8" stroke-width="1.6"/>
+  <text x="300" y="118" text-anchor="middle" font-size="9.5" fill="#1b6ca8">k_n &#948;</text>
+  <rect x="352" y="94" width="26" height="12" fill="none" stroke="#3fa34d" stroke-width="1.4"/>
+  <line x1="360" y1="100" x2="378" y2="100" stroke="#3fa34d" stroke-width="1.4"/>
+  <line x1="378" y1="100" x2="430" y2="100" stroke="#3fa34d" stroke-width="1.6"/>
+  <text x="405" y="118" text-anchor="middle" font-size="9.5" fill="#2f7d3a">&#947;_n v_n</text>
+
+  <!-- tangential shear-spring + Coulomb slider, drawn below -->
+  <text x="347" y="290" text-anchor="middle" font-size="11.5" font-weight="bold" fill="#1a1a2e">tangential (Cundall-Strack history + Coulomb)</text>
+  <path d="M250,262 h24 l5,-7 l8,14 l8,-14 l8,14 l5,-7 h16" fill="none" stroke="#c15a22" stroke-width="1.5"/>
+  <text x="298" y="252" text-anchor="middle" font-size="9.5" fill="#c15a22">k_t &#948;s_t</text>
+  <circle cx="345" cy="262" r="5" fill="none" stroke="#1a1a2e" stroke-width="1.2"/>
+  <line x1="352" y1="262" x2="430" y2="262" stroke="#1a1a2e" stroke-width="1.3"/>
+  <text x="405" y="252" text-anchor="middle" font-size="9.5" fill="#1a1a2e">|F_t| &#8804; &#956;|F_n|</text>
+
+  <!-- right panel: the governing equations -->
+  <line x1="530" y1="60" x2="530" y2="300" stroke="#ccc" stroke-width="1"/>
+  <text x="625" y="82" text-anchor="middle" font-size="11.5" font-weight="bold" fill="#1a1a2e">contact law</text>
+  <text x="545" y="108" font-size="10.5" fill="#1b6ca8">F_n = k_n &#948; &#8722; m* &#947;_n v_n</text>
+  <text x="545" y="130" font-size="10.5" fill="#c15a22">F_t = &#8722;k_t &#948;s_t &#8722; m* &#947;_t v_t</text>
+  <text x="545" y="152" font-size="10.5" fill="#1a1a2e">|F_t| &#8804; &#956; |F_n|</text>
+  <text x="545" y="182" font-size="9.8" fill="#555">Hertz: scale by</text>
+  <text x="545" y="197" font-size="9.8" fill="#555">&#8730;&#948; &#183; &#8730;(R_i R_j /(R_i+R_j))</text>
+  <text x="545" y="224" font-size="9.8" fill="#555">damping from restitution e:</text>
+  <text x="545" y="240" font-size="9.8" fill="#555">&#947;_n = &#8722;2 ln e &#8730;(k_n/m*)</text>
+  <text x="558" y="255" font-size="9.8" fill="#555">/ &#8730;(&#960;&#178; + ln&#178; e)</text>
+  <text x="545" y="282" font-size="9.8" fill="#555">dt &lt;&lt; t_c = &#960;&#8730;(m*/k_n)</text>
+
+  <!-- footer -->
+  <text x="270" y="322" text-anchor="middle" font-size="9.5" font-style="italic" fill="#666">Forms verified verbatim against the LAMMPS granular pair-styles and the tumbling-mill DEM literature.</text>
+</svg>
