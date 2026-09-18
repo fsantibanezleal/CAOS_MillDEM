@@ -26,6 +26,42 @@
   backgroundcolor=\color{gray!6}, aboveskip=6pt, belowskip=4pt,
 }
 
+% IEEEtran hard-codes an em-dash after the abstract and index-terms names; the CAOS
+% content standard (ADR-0067) excludes em-dashes, so the separator is a full stop.
+\makeatletter
+\def\abstract{\normalfont
+    \if@twocolumn
+      \@IEEEabskeysecsize\bfseries\textit{\abstractname}.\ \relax
+    \else
+      \bgroup\par\addvspace{0.5\baselineskip}\centering\vspace{-1.78ex}\@IEEEabskeysecsize\textbf{\abstractname}\par\addvspace{0.5\baselineskip}\egroup\quotation\@IEEEabskeysecsize
+    \fi\@IEEEgobbleleadPARNLSP}
+\def\IEEEkeywords{\normalfont
+    \if@twocolumn
+      \@IEEEabskeysecsize\bfseries\textit{\IEEEkeywordsname}.\ \relax
+    \else
+      \bgroup\par\addvspace{0.5\baselineskip}\centering\@IEEEabskeysecsize\textbf{\IEEEkeywordsname}\par\addvspace{0.5\baselineskip}\egroup\quotation\@IEEEabskeysecsize
+    \fi\@IEEEgobbleleadPARNLSP}
+\makeatother
+
+% Page-1 header block (conventions/manuscript-header-standard.md). The four document
+% macros are set by the publishing tool when the version DOI is reserved.
+\newcommand{\doctype}{Technical note}
+\newcommand{\docversion}{v1.1}
+\newcommand{\docdate}{18 September 2026}
+\newcommand{\versiondoi}{10.5281/zenodo.22822554}
+\newcommand{\conceptdoi}{10.5281/zenodo.21511525}
+\newcommand{\docrepo}{github.com/fsantibanezleal/CAOS\_MillDEM}
+\newcommand{\headerblock}{%
+\begin{center}
+\fbox{\parbox{0.94\textwidth}{\small\raggedright
+\textbf{\doctype} \quad$\cdot$\quad \docversion, \docdate \quad$\cdot$\quad Licence CC BY 4.0\\[2pt]
+CAOS open-research programme \quad$\cdot$\quad CAOS\_MillDEM, the \texttt{milldem} tumbling-mill DEM package\\[2pt]
+Version DOI \href{https://doi.org/\versiondoi}{\texttt{\versiondoi}} \quad$\cdot$\quad
+concept DOI (always latest) \href{https://doi.org/\conceptdoi}{\texttt{\conceptdoi}}\\[2pt]
+Not peer reviewed. Source code, data and computational records: \href{https://\docrepo}{\texttt{\docrepo}}
+}}
+\end{center}}
+
 \begin{document}
 
 \title{milldem: A Cross-Platform Soft-Sphere DEM for\\ Tumbling-Mill Charge Motion and\\ Size-Consistent Net Power}
@@ -33,11 +69,13 @@
 \author{Felipe~Santiba\~nez-Leal~\orcidlink{0000-0002-0150-3246}%
 \thanks{F. Santiba\~nez-Leal is with the CAOS open-research programme, Santiago, Chile
 (e-mail: fsantibanez@gmail.com; ORCID 0000-0002-0150-3246).}%
-\thanks{Software note, 2026. Package \texttt{milldem} on PyPI (\url{https://pypi.org/project/milldem});
-source (MIT) at \url{https://github.com/fsantibanezleal/CAOS_MillDEM}.}}
+\thanks{Package \texttt{milldem} on PyPI (\url{https://pypi.org/project/milldem});
+source code (MIT) at \url{https://github.com/fsantibanezleal/CAOS_MillDEM}.}}
 
-\markboth{Software Note, 2026}%
+\markboth{\doctype\ \docversion, 2026 \textperiodcentered\ CAOS open-research programme}%
 {Santiba\~nez-Leal: milldem, a cross-platform soft-sphere DEM for tumbling-mill charge motion and power}
+
+\IEEEaftertitletext{\vspace{-0.6\baselineskip}\headerblock\vspace{0.2\baselineskip}}
 
 \maketitle
 
@@ -55,12 +93,12 @@ routes: a fast two-dimensional disc slice for a qualitative charge-shape and mot
 \emph{thin-three-dimensional-slab} route, an axial slab with periodic axial boundaries that resolves the force
 chains carrying the charge lift, for net power. The central contribution is that the slab route makes the net
 power \emph{size-consistent}: because a single 2D disc slice sets its lift as a size-independent absolute height,
-its power-to-model ratio drifts by roughly a factor of two across a $2\times$ range of mill diameter, whereas the
+its power-to-model ratio drifts systematically with mill diameter, whereas the
 3D slab, over a reproducible sweep of four mill diameters ($3$--$6$~m) and four fills ($J=0.20$--$0.42$), holds
 its net power within the validated band of the classical Hogg--Fuerstenau model (all eight configurations have a
-DEM-to-model ratio in $[0.77,1.26]$, mean $1.06$) and keeps the size ratio inside a factor of $1.5$. We state the
-model, the validation with its honest residual scatter, and the limits explicitly; the sweep and both schematic
-figures regenerate from the committed artifacts.
+DEM-to-model ratio in $[0.77,1.26]$, mean $1.06$) and keeps the size ratio within a factor of $1.51$. With the
+small particle budget used, the ratio scatters by about $\pm0.2$: the agreement is a band around a classical
+analytical model, not a fit to plant measurements.
 \end{abstract}
 
 \begin{IEEEkeywords}
@@ -82,7 +120,7 @@ that must ``just \texttt{pip install} and run'', that barrier is disproportionat
 mill-charge study needs.
 
 \texttt{milldem} removes the barrier. It is a soft-sphere DEM for tumbling mills implemented in pure
-NumPy, with an optional Numba just-in-time (JIT) compilation of the contact loop for a $10$--$50\times$ speed-up
+NumPy, with an optional Numba~\cite{numba} just-in-time (JIT) compilation of the contact loop for a $10$--$50\times$ speed-up
 and an optional Torch-CUDA lane for the batched-contact and surrogate paths, and it requires no C\texttt{++}
 toolchain and no Linux subsystem. It installs with a single \texttt{pip install milldem} and runs on Windows,
 macOS or Linux. The engine is not a re-implementation for its own sake: the contact forces are taken verbatim
@@ -93,16 +131,18 @@ The contribution beyond portability is a \emph{size-consistent} net-power route.
 the mill, the cheap and common shortcut, under-predicts power in a way that gets worse with mill size: its charge
 lift is a size-independent absolute height, so the centre-of-mass torque arm as a fraction of the mill radius
 shrinks as the mill grows, and the predicted power falls below the classical models by a size-dependent factor.
-We diagnose this honestly rather than fit it away, and fix it with a \emph{thin-three-dimensional slab}: an axial
+We diagnose the cause of this drift instead of absorbing it into a fitted correction, and remove it with a
+\emph{thin-three-dimensional slab}: an axial
 slab of the mill a few ball diameters thick with periodic axial boundaries, which resolves the three-dimensional
 packing and the axial force chains that actually carry the lift. Over a reproducible sweep the slab route holds
 its net power within the validated band of the classical Hogg--Fuerstenau model~\cite{hf} across a $2\times$ range
 of mill diameter and the operating fill range, size-consistently.
 
 This note states the software's need (Section~\ref{sec:need}), the contact model and integrator
-(Section~\ref{sec:model}), the two routes and the slab rationale (Section~\ref{sec:routes}), the validation with
-its honest residual scatter (Section~\ref{sec:validation}), and the architecture, limits and availability
-(Sections~\ref{sec:arch}--\ref{sec:limits}). Nothing in the validation is tuned to hide a gap.
+(Section~\ref{sec:model}), the two routes and the slab rationale (Section~\ref{sec:routes}), the validation and
+its residual scatter (Section~\ref{sec:validation}), and the architecture, limits and availability
+(Sections~\ref{sec:arch}--\ref{sec:limits}). The reported agreement is not the result of fitting the engine to
+the reference model.
 
 \section{Statement of Need}\label{sec:need}
 
@@ -111,7 +151,7 @@ The intended users are researchers, students and engineers who need a mill-charg
 run a charge simulation from a notebook on their own laptops; a prototyping loop that must generate charge-motion
 or power data inside a Python pipeline without a native build; a continuous-integration job that certifies a
 downstream model against DEM output. For these uses the C\texttt{++} engines' capability is real but their build
-friction on non-Linux machines is a genuine cost, and a GPU cluster is overkill for a thin-slab power estimate.
+friction on non-Linux machines is a significant cost, and a GPU cluster is overkill for a thin-slab power estimate.
 \texttt{milldem} targets exactly this gap: standard, literature-faithful contact physics; a pure-Python install
 with optional acceleration; a small, tested API and command-line interface; and a net-power route whose accuracy
 is validated against a classical model and, importantly, is \emph{size-consistent}, so a study that spans
@@ -162,9 +202,9 @@ granular pair-style documentation and cross-checked term-by-term in the package'
 
 \section{Two Routes: Charge Shape and Size-Consistent Power}\label{sec:routes}
 
-\begin{figure}[!t]
+\begin{figure*}[!t]
 \centering
-\includegraphics[width=0.99\columnwidth]{fig-slab.pdf}
+\includegraphics[width=0.98\textwidth]{fig-slab.pdf}
 \caption{The thin-3D-slab power route. Left: the mill cross-section, where the rotating wall lifts the charge to
 a tilted crescent (toe on the falling side, shoulder on the rising side) whose centre of mass sits at a torque
 arm from the axis. Right: an axial slab a few ball diameters thick with periodic axial boundaries, which resolves
@@ -173,7 +213,7 @@ lift is a size-independent absolute height, so its arm as a fraction of $R$ shri
 the arm scales with $R$ by dynamic similarity. Net power uses the van Nierop torque route $P = 2\pi TN$, scaled
 by the mill length over the slab thickness.}
 \label{fig:slab}
-\end{figure}
+\end{figure*}
 
 The package offers two routes with a common contact core. The \textbf{2D route} (\texttt{simulate},
 \texttt{MillDEM}) rotates a disc slice of the charge and reports the charge shape (toe and shoulder angles) and
@@ -191,23 +231,24 @@ size-dependent factor. This is a real limitation of the disc slice, not a tuning
 diameters with periodic axial boundaries (Fig.~\ref{fig:slab}). The slab resolves the three-dimensional packing
 and the axial force chains that carry the lift, so the charge lifts to a shoulder that is set by speed and fill
 (dynamic similarity) and the arm scales with $R$ as it physically must. The full-mill power scales the slab
-torque by the mill length over the slab thickness. This is the route the validation certifies.
+torque by the mill length over the slab thickness. This is the route validated in Section~\ref{sec:validation}.
 
 \section{Validation}\label{sec:validation}
 
-\begin{figure}[!t]
+\begin{figure*}[!t]
 \centering
-\includegraphics[width=0.99\columnwidth]{fig-validation.pdf}
-\caption{Thin-3D-slab net power (blue) against the classical Hogg--Fuerstenau model (orange), from the committed
-reproducible sweep. \textbf{(a)} Size sweep at fixed fill $J=0.30$: across mill diameters $3$--$6$~m the DEM power
-tracks the model, with DEM-to-model ratios $1.04, 1.16, 0.90, 0.77$ (numbers above each pair). \textbf{(b)} Fill
-sweep at $D=4$~m: net power rises monotonically with fill through $J=0.35$ and tracks the model (ratios
-$1.04$--$1.26$), with the expected approach to the model's roll-off near $J\!\approx\!0.47$. All eight
-configurations lie within the validated band; the residual scatter is stated honestly in the text.}
+\includegraphics[width=0.78\textwidth]{fig-validation.pdf}
+\caption{Thin-3D-slab net power (blue) against the classical Hogg--Fuerstenau model (orange), from the
+reproducible sweep of Table~\ref{tab:sweep}. \textbf{(a)} Size sweep at fixed fill $J=0.30$: across
+mill diameters $3$--$6$~m the DEM power tracks the model, with DEM-to-model ratios $1.04, 1.16, 0.90, 0.77$
+(numbers above each pair). \textbf{(b)} Fill sweep at $D=4$~m: net power rises monotonically with fill through
+$J=0.35$ and tracks the model (ratios $1.04$--$1.26$), with the expected approach to the model's roll-off near
+$J\!\approx\!0.47$. All eight configurations lie within the validated band; the residual scatter is discussed in
+Section~\ref{sec:validation}.}
 \label{fig:validation}
-\end{figure}
+\end{figure*}
 
-The load-bearing claim is that the thin-3D-slab net power agrees with a classical mill-power model and does so
+The central claim is that the thin-3D-slab net power agrees with a classical mill-power model and does so
 \emph{size-consistently}. We validate against the Hogg--Fuerstenau model~\cite{hf} (the standard full geometric
 lift arm, $c_{\rm arm}=1.0$), which for diameter $D$, length $L$, fraction of critical speed $\phi_c$ and fill
 $J$ gives the net power
@@ -219,19 +260,19 @@ R^2 L\,J$ (bulk density $\rho_c=4.8$~t/m$^3$) and lift angle $\theta_L=35^\circ$
 by the package's certifying test.
 
 Table~\ref{tab:sweep} and Fig.~\ref{fig:validation} give a reproducible sweep of the slab route against this
-model over four mill diameters at fixed fill and four fills at fixed diameter, each a real DEM run of $1.3$
-simulated seconds. Two results stand out. First, \emph{the DEM power stays within the validated band of the
+model over four mill diameters at fixed fill and four fills at fixed diameter, each a full DEM simulation of
+$1.3$~s of simulated time. Two results stand out. First, \emph{the DEM power stays within the validated band of the
 classical model}: all eight configurations have a DEM-to-model ratio in $[0.77, 1.26]$, mean $1.06$. Second,
-\emph{the ratio is size-consistent to within a factor of $1.5$}: across the $2\times$ diameter range the size
-sweep ratios are $1.04, 1.16, 0.90, 0.77$ (spread $0.39$), where a single 2D disc slice drifts by roughly a
-factor of two over the same range. The fill sweep confirms that power rises monotonically with charge through
+\emph{the ratio is size-consistent to within a factor of $1.51$}: across the $2\times$ diameter range the size
+sweep ratios are $1.04, 1.16, 0.90, 0.77$ (spread $0.39$), without the systematic size drift of a single 2D
+disc slice described in Section~\ref{sec:routes}. The fill sweep confirms that power rises monotonically with charge through
 $J=0.35$ and then approaches the model's roll-off (the Hogg--Fuerstenau peak is near $J\approx0.47$), which the
 thin slab does not pack faithfully beyond $J\approx0.4$.
 
 \begin{table}[!t]
 \centering
 \caption{Reproducible DEM-vs-Hogg--Fuerstenau sweep ($\phi_c=0.72$, $1.3$~s runs). All ratios lie in the
-validated band; the committed artifact regenerates this table and Fig.~\ref{fig:validation}.}
+validated band; this table and Fig.~\ref{fig:validation} are generated from the archived sweep artifact.}
 \label{tab:sweep}
 \footnotesize
 \begin{tabular}{@{}l c c c c@{}}
@@ -251,7 +292,7 @@ fill ($D{=}4$~m)  & $J{=}0.20$ & $1068$ & $1022$ & $1.04$ \\
 \end{tabular}
 \end{table}
 
-We are deliberate about what this does and does not show. The agreement is a \emph{band}, not a tight fit: with a
+The agreement is a \emph{band}, not a tight fit: with a
 small fixed particle budget (a few hundred balls in the slab) and short integration, the ratio scatters by
 $\pm0.2$ and softens at the largest diameter, where the slab's relative resolution is coarsest. The claim is not
 sub-ten-percent accuracy; it is that the slab route lands within a validated band around a classical model
@@ -270,23 +311,25 @@ consumes). It exposes a Python API and a command-line interface:
 \begin{lstlisting}[language=Python]
 from milldem import simulate_power, MillConfig
 p = simulate_power(MillConfig(diameter_m=5.0,
-        phi_c=0.75, fill=0.30, ball_diameter_m=0.10))
+        phi_c=0.75, fill=0.30,
+        ball_diameter_m=0.10))
 print(p["net_power_kw"], p["arm_m"])
 \end{lstlisting}
 
 \begin{lstlisting}[language=bash]
-milldem power --D 5 --phi 0.75 --J 0.30 --ball 0.10 --L 6
+milldem power --D 5 --phi 0.75 --J 0.30 \
+    --ball 0.10 --L 6
 \end{lstlisting}
 
 The engine is deterministic under a fixed seed, covered by a unit-test suite (contact laws, statics, settling,
 determinism, the certifying power test), and published to PyPI as \texttt{milldem} under the MIT license. Source,
-tests, the honest validation statement (\texttt{docs/VALIDATION.md}), and the reproducible sweep and figure
-scripts of this note are open at \url{https://github.com/fsantibanezleal/CAOS_MillDEM}. The sweep artifact and
-both schematic figures regenerate with no network access.
+tests, the validation statement (\texttt{docs/VALIDATION.md}), and the reproducible sweep and figure scripts are
+available at \url{https://github.com/fsantibanezleal/CAOS_MillDEM}. The sweep artifact and both schematic
+figures regenerate with no network access.
 
 \section{Limitations}\label{sec:limits}
 
-The scope is honest. The 2D disc route is qualitative for power (it is a shape and regime tool). The thin-3D slab
+The 2D disc route is qualitative for power (it is a shape and regime tool). The thin-3D slab
 packs faithfully up to $J\approx0.4$; beyond it the periodic-$z$ tiling would need to be filled more densely to
 reach the Hogg--Fuerstenau peak near $J\approx0.47$. The power agreement is a validated band around a classical
 analytical model, not a fit to plant measurements, and it scatters by about $\pm0.2$ in ratio with the small
@@ -294,8 +337,8 @@ particle budget used here; larger budgets and longer integration would tighten i
 standard soft-sphere family (no particle breakage, no slurry or fluid coupling, spherical media), so the engine
 targets charge-motion and net-power studies, not fine grinding kinetics. The friction and restitution defaults
 are calibrated to hold a stable, physical crescent; a specific mill and medium should be re-calibrated to
-measured values. None of these limits is papered over: the validation document states each, and the tests assert
-only what is verified.
+measured values. The validation document in the repository states each of these limits, and the tests assert
+only verified properties.
 
 \section{Conclusion}
 
@@ -304,19 +347,21 @@ runs wherever Python does, with no C\texttt{++} toolchain and no Linux subsystem
 contact physics verbatim from the literature. Its distinguishing feature is a thin-3D-slab net-power route that
 is size-consistent: over a reproducible sweep it holds its net power within the validated band of the classical
 Hogg--Fuerstenau model across a $2\times$ range of mill diameter and the operating fill range, removing the
-roughly two-fold size drift of a 2D disc slice. The value is a reproducible, honestly-validated mill-DEM that a
-course, a prototype or a CI job can \texttt{pip install} and trust within its stated band.
+systematic size drift of a 2D disc slice. The result is a reproducible mill DEM, validated against a
+classical power model, that a course, a prototype or a CI job can install with \texttt{pip} and use within its
+stated band.
 
 \appendices
 \section{Reproduction}\label{app:repro}
 
-The validation sweep is \texttt{manuscripts/mill-power-note/figures/validation\_sweep.py}, which runs
+{\raggedright\parindent=1em
+The validation sweep is \path{manuscripts/mill-power-note/figures/validation_sweep.py}, which runs
 \texttt{simulate\_power} across the four diameters and four fills of Table~\ref{tab:sweep} at $\phi_c=0.72$ and
 $1.3$~s, computes the Hogg--Fuerstenau reference with the formula above, and writes
-\texttt{data/validation\_sweep.json}. The figure script reads that artifact; the two schematics are hand-authored
+\path{data/validation_sweep.json}. The figure script reads that artifact; the two schematics are hand-authored
 theme-aware vector drawings. Installing \texttt{milldem[jit]} and running the sweep reproduces the table and
-Fig.~\ref{fig:validation} exactly (the engine is seeded); the residual scatter reported above is the genuine
-run-to-run variation of a small-$N$, short-integration slab, not a fitted result.
+Fig.~\ref{fig:validation} exactly (the engine is seeded); the residual scatter reported above is the
+run-to-run variation of a small-$N$, short-integration slab, not a fitted result.\par}
 
 \balance
 
