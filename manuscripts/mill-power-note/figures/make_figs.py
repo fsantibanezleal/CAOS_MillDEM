@@ -71,8 +71,8 @@ def main():
         axb, [f"{r['J']:.2f}" for r in fs], [r["dem_kw"] for r in fs], [r["hf_kw"] for r in fs],
         [r["ratio"] for r in fs], "fill fraction J", f"(b) fill sweep (D={fs[0]['D']:.0f} m)")
 
-    # the ratio-labels legend note
-    axa.text(0.02, 0.97, "numbers = DEM/HF ratio", transform=axa.transAxes, fontsize=7.4,
+    # the ratio-labels legend note (below the ratio labels, above the short left-hand bars, so they never overlap)
+    axa.text(0.02, 0.80, "numbers = DEM/HF ratio", transform=axa.transAxes, fontsize=7.4,
              va="top", ha="left", style="italic", color="#555")
     fig.legend(handles=[b1, b2], loc="upper center", ncol=2, fontsize=8.4, frameon=False,
                bbox_to_anchor=(0.5, 1.02))
