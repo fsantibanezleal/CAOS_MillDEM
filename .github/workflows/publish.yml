@@ -1,4 +1,4 @@
-# Publish `milldem` to PyPI on a tagged release, via PyPI Trusted Publishing (OIDC) — NO stored token
+# Publish `milldem` to PyPI on a tagged release, via PyPI Trusted Publishing (OIDC): NO stored token
 # (ADR-0061). One-time human setup: add a PyPI "pending publisher" for project `milldem`, owner
 # `fsantibanezleal`, repo `CAOS_MillDEM`, workflow `publish.yml`, environment `pypi`. Then a pushed tag
 # `vX.XX.XXX` (or a published GitHub Release) builds + uploads tokenlessly.
